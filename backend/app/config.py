@@ -12,6 +12,9 @@ class Settings(BaseSettings):
 
     app_env: str = "development"
     database_url: str = "sqlite:///./data/applyos.db"
+    ai_provider: str = "groq"  # which provider is tried first: groq or ollama
+    ai_max_retries: int = 3  # attempts per provider when the AI returns invalid output
+    ai_cooldown_seconds: int = 60  # pause on a provider after a rate limit or outage
     groq_api_key: str = ""
     groq_primary_model: str = "openai/gpt-oss-120b"
     groq_fallback_model: str = "qwen/qwen3.8-27b"

@@ -4,6 +4,7 @@ import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api import ai as ai_api
 from app.api import profile as profile_api
 from app.config import settings
 from app.database.database import check_db, init_db
@@ -25,6 +26,7 @@ app.add_middleware(
 )
 
 app.include_router(profile_api.router)
+app.include_router(ai_api.router)
 
 
 def ollama_up() -> bool:
