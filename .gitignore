@@ -1,0 +1,22 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# personal data and local state
+data/
+logs/
+*.db
+backend/app/profile/career_profile.json
+
+# python
+backend/.venv/
+__pycache__/
+.pytest_cache/
+
+# node
+node_modules/
+dist/
+
+# macOS
+.DS_Store
