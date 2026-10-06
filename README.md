@@ -99,8 +99,8 @@ Code:
 ### Local AI with Ollama (optional fallback)
   brew install ollama
   brew services start ollama
-  ollama pull qwen3:8b
-Then set OLLAMA_MODEL=qwen3:8b in .env. Pick a smaller or larger model to match
+  ollama pull qwen3:4b
+Then set OLLAMA_MODEL=qwen3:4b in .env. Pick a smaller or larger model to match
 your Mac's memory. To test the fallback without touching your Groq key:
   cd backend && source .venv/bin/activate
   GROQ_API_KEY= python -m app.ai.smoke
