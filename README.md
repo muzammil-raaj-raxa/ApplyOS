@@ -73,6 +73,8 @@ Every reply is checked: JSON parse, Pydantic validation, then retry (up to
 AI_MAX_RETRIES per provider). If a provider keeps returning invalid output, the
 router tries the other one. If both fail on invalid output, it raises an error
 that means "needs human review". Nothing unchecked reaches the database.
+Reasoning blocks (<think>...</think>) from reasoning models are removed before
+parsing.
 
 Failure handling:
 - Rate limit (HTTP 429): that provider is paused. The Retry-After header is
@@ -105,23 +107,75 @@ your Mac's memory. To test the fallback without touching your Groq key:
   cd backend && source .venv/bin/activate
   GROQ_API_KEY= python -m app.ai.smoke
 
+## Job discovery (Phase 5)
+Pipeline: search sources -> normalize -> remove duplicates -> deterministic
+filters -> save. No AI is used in this phase.
+
+Sources (independent adapters in backend/app/jobs/sources/): Greenhouse, Lever
+and Ashby, using each site's public job board API. Every request sends a
+User-Agent and pauses afterwards. HTTP 429 stops that source for the run and is
+never retried. A wrong company slug or a failing site is reported in the run's
+errors and never stops the other companies or sources.
+
+Search profile: edit it with GET/PUT /api/search-profile (saved to
+data/search_profile.json; defaults live in code). Companies are board slugs per
+source: boards.greenhouse.io/stripe -> stripe, jobs.lever.co/spotify -> spotify,
+jobs.ashbyhq.com/ramp -> ramp. The default company lists are starting points
+only. A 404 error means the slug is wrong.
+
+Normalization (backend/app/jobs/normalization.py): clean text, workplace
+(remote, hybrid, onsite), salary, employment type, minimum years of experience,
+sponsorship, and required versus preferred skills. These are text heuristics.
+The original posting link is always kept.
+
+Duplicates: a fingerprint (company + title + canonical URL) catches the same job
+seen again. A near-identical job from a different source (same company, similar
+title, compatible location) is also dropped. Several openings with the same
+title on one source stay separate.
+
+Filters (backend/app/jobs/filtering.py), checked before any AI call. Each match
+is stored as a reason on the job. Nothing is silently dropped: filtered jobs stay
+in the database and are hidden from the default list.
+- unrelated role, or Android-only
+- seniority too high (staff, principal, director and similar titles, your
+  exclude keywords, or a job asking 4 or more years above your profile)
+- remote role limited to a region such as the US or EU
+- remote, hybrid or onsite turned off in your career profile preferences
+- posting appears closed
+- employment type not in your search profile
+A missing preferred skill never rejects a job.
+
+Endpoints:
+- POST /api/jobs/search: run discovery now, returns counts and errors
+- GET /api/jobs: relevant jobs (filters: q, source, company, workplace, decision,
+  include_filtered, limit, offset)
+- GET /api/jobs/stats and GET /api/jobs/{id}
+- POST /api/jobs/{id}/save, POST /api/jobs/{id}/reject, DELETE /api/jobs/{id}/decision
+- GET/PUT /api/search-profile
+
+Live check without saving anything (needs internet):
+  cd backend && source .venv/bin/activate
+  python -m app.jobs.smoke
+
 ## Health check
 http://localhost:8000/api/health reports backend, database, groq, ollama and
 playwright. The database flag runs a real query. The groq flag only checks that
-a key is set. The playwright flag stays false until Phase 10.
+a key is set. The ollama flag is true only when Ollama is running AND the model
+in OLLAMA_MODEL is installed. The playwright flag stays false until Phase 10.
 
 ## Tests
 From the backend folder, with the virtual environment active:
   python -m pytest -v
-Currently 43 tests: 5 for the database, 16 for the career profile (schema
-rules, evidence rules, experience months, gap report, and the profile API) and
-22 for the AI layer (output parsing, Groq errors, Ollama, router fallback and
-cooldowns). AI tests use fake HTTP responses, so they need no key, no internet
-and no Ollama.
+Currently 111 tests: 5 for the database, 16 for the career profile, 30 for the
+AI layer (output parsing, Groq errors, Ollama, readiness check, router fallback
+and cooldowns) and 60 for job discovery (normalization, duplicates, filters,
+the three sources, the discovery run, and the jobs API). Tests use fake HTTP
+responses, so they need no key, no internet and no Ollama.
 
 ## Status
 - Phase 1 (skeleton): done
 - Phase 2 (database): done
 - Phase 3 (career profile): done
 - Phase 4 (AI provider layer): done
-- Phase 5 (job discovery): next
+- Phase 5 (job discovery): done
+- Phase 6 (job analysis and scoring): next

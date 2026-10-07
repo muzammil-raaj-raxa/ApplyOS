@@ -37,7 +37,7 @@ class AIResult:
 
 def parse_output(raw: str, schema: type[BaseModel]) -> BaseModel:
     """Raw text -> JSON -> Pydantic. Raises AIInvalidOutputError if either step fails."""
-    text = raw.strip()
+    text = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()  # reasoning models
     text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text)  # models sometimes add code fences
     start, end = text.find("{"), text.rfind("}")
     if start == -1 or end <= start:

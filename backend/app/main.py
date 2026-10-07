@@ -1,12 +1,13 @@
 from contextlib import asynccontextmanager
 
-import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.ai.router import ai_router
 from app.api import ai as ai_api
+from app.api import jobs as jobs_api
 from app.api import profile as profile_api
-from app.config import settings
+from app.api import search_profile as search_profile_api
 from app.database.database import check_db, init_db
 
 
@@ -27,21 +28,18 @@ app.add_middleware(
 
 app.include_router(profile_api.router)
 app.include_router(ai_api.router)
-
-
-def ollama_up() -> bool:
-    try:
-        return httpx.get(settings.ollama_base_url, timeout=1.5).status_code == 200
-    except Exception:
-        return False
+app.include_router(jobs_api.router)
+app.include_router(search_profile_api.router)
 
 
 @app.get("/api/health")
 def health():
+    groq = ai_router.provider("groq")
+    ollama = ai_router.provider("ollama")
     return {
         "backend": True,
         "database": check_db(),
-        "groq": bool(settings.groq_api_key),  # key present, not yet verified
-        "ollama": ollama_up(),
+        "groq": bool(groq and groq.is_configured()),  # key present, not yet verified
+        "ollama": bool(ollama and ollama.is_ready()),  # running AND model installed
         "playwright": False,  # Phase 10
     }

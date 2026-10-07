@@ -30,6 +30,22 @@ class OllamaProvider(AIProvider):
     def is_configured(self) -> bool:
         return bool(self.model)  # no hard-coded model: OLLAMA_MODEL must be set
 
+    def is_ready(self) -> bool:
+        """True only if Ollama is running AND the configured model is installed."""
+        if not self.is_configured():
+            return False
+        try:
+            response = self.client.get(f"{self.base_url}/api/tags", timeout=2.0)
+            if response.status_code != 200:
+                return False
+            installed = set()
+            for item in response.json().get("models", []):
+                installed.add(item.get("name", ""))
+                installed.add(item.get("model", ""))
+        except (httpx.HTTPError, ValueError, AttributeError):
+            return False
+        return self.model in installed or f"{self.model}:latest" in installed
+
     def complete(
         self, prompt: str, schema: type[BaseModel], system: str | None, tier: str
     ) -> tuple[str, str]:

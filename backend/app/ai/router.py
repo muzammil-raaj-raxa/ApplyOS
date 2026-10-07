@@ -65,6 +65,9 @@ class AIRouter:
             raise AIInvalidOutputError("AI output stayed invalid: needs human review")
         raise AIUnavailableError("no AI provider available (not configured, cooling down, or failing)")
 
+    def provider(self, name: str) -> AIProvider | None:
+        return next((p for p in self.providers if p.name == name), None)
+
     def status(self) -> dict:
         return {
             "providers": [
