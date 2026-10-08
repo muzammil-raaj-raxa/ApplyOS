@@ -75,6 +75,8 @@ router tries the other one. If both fail on invalid output, it raises an error
 that means "needs human review". Nothing unchecked reaches the database.
 Reasoning blocks (<think>...</think>) from reasoning models are removed before
 parsing.
+Callers can also pass a business-rule check. A failed check counts as invalid output:
+the reason is sent back to the AI for a retry, then the next provider is tried.
 
 Failure handling:
 - Rate limit (HTTP 429): that provider is paused. The Retry-After header is
@@ -157,6 +159,47 @@ Live check without saving anything (needs internet):
   cd backend && source .venv/bin/activate
   python -m app.jobs.smoke
 
+## Job analysis and scoring (Phase 6)
+Each relevant job is scored against your career profile. The AI judges only what needs
+judgment. Rules do the rest, so the arithmetic is never left to a model.
+
+- AI (strong tier, prompt job_analysis_v1): technical match, seniority match, domain match,
+  plus confirmed matches, partial matches, gaps, uncertain requirements, risks and a short summary.
+- Rules: experience (years asked versus yours), location (your preferences), authorization
+  (the posting's sponsorship wording; your legal authorization is never assumed), role relevance,
+  and the overall score.
+- Overall score: technical 30, experience 20, seniority 15, location 10, authorization 10,
+  role 10, domain 5. Computed in code (backend/app/jobs/scoring.py).
+- 90+ Excellent (HIGH, 95+ CRITICAL), 80-89 Strong (MEDIUM), 70-79 Review (LOW), 60-69 Low
+  priority, below 60 Reject. Recommendation: APPLY at 80+, REVIEW at 70-79, SKIP below. APPLY
+  means "worth preparing an application for your review", never "submit".
+
+Truthfulness checks on every AI answer. A failed check is retried with the reason, then the
+next provider is tried, then the job is marked needs_review:
+- Every confirmed or partial match must cite a skill, project, employer or certification that
+  exists in your verified career profile. A skill without evidence cannot be cited.
+- With three or more required technologies detected, the AI's technical score must be within 35
+  points of a keyword check of those technologies against your confirmed skills.
+
+What leaves your machine: only verified facts (confirmed skills, usable bullets, projects,
+education, certifications). Your name, email, phone and links are never sent. Job descriptions
+are cut at 7000 characters to stay inside free-tier token limits.
+
+Storage: each analysis is a new row in job_scores with the model, prompt version, profile version
+and full details. History is kept. A job counts as scored while its latest row matches the
+current prompt version and career profile version.
+
+Endpoints:
+- POST /api/jobs/analyze?limit=5: score the top unscored relevant jobs (iOS and Swift titles
+  first, then newest). Stops at the first moment no AI is available, so a rate-limited provider
+  is never hammered. Pauses AI_BATCH_PAUSE_SECONDS (default 3) between calls.
+- POST /api/jobs/{id}/analyze?force=false: score one job. Reuses the stored result unless force.
+  503 means no AI is available. 422 means the answer failed validation (job marked needs_review).
+- GET /api/jobs: each job now has a score block. New filters: min_score, scored, sort=score.
+- GET /api/jobs/stats: adds analyzed and high_fit (latest score at or above the minimum score
+  in your search profile).
+Prompt details: docs/ai-prompts.md.
+
 ## Health check
 http://localhost:8000/api/health reports backend, database, groq, ollama and
 playwright. The database flag runs a real query. The groq flag only checks that
@@ -166,11 +209,12 @@ in OLLAMA_MODEL is installed. The playwright flag stays false until Phase 10.
 ## Tests
 From the backend folder, with the virtual environment active:
   python -m pytest -v
-Currently 111 tests: 5 for the database, 16 for the career profile, 30 for the
-AI layer (output parsing, Groq errors, Ollama, readiness check, router fallback
-and cooldowns) and 60 for job discovery (normalization, duplicates, filters,
-the three sources, the discovery run, and the jobs API). Tests use fake HTTP
-responses, so they need no key, no internet and no Ollama.
+Currently 164 tests: 5 for the database, 16 for the career profile, 36 for the AI layer
+(output parsing, rule checks, Groq errors, Ollama, readiness, router fallback and cooldowns),
+60 for job discovery (normalization, duplicates, filters, the three sources, the discovery run,
+the jobs API) and 47 for scoring (weights and bands, the analysis rules and truthfulness checks,
+batches, and the analysis API). Tests use fake HTTP responses and scripted AI replies, so they
+need no key, no internet and no Ollama.
 
 ## Status
 - Phase 1 (skeleton): done
@@ -178,4 +222,5 @@ responses, so they need no key, no internet and no Ollama.
 - Phase 3 (career profile): done
 - Phase 4 (AI provider layer): done
 - Phase 5 (job discovery): done
-- Phase 6 (job analysis and scoring): next
+- Phase 6 (job analysis and scoring): done
+- Phase 7 (V1 dashboard): next

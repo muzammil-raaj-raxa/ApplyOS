@@ -45,24 +45,28 @@ class AIRouter:
         schema: type[BaseModel],
         system: str | None = None,
         tier: str = "strong",
+        check=None,
     ) -> AIResult:
         invalid_output = False
+        last_invalid = ""
+        extra = {"check": check} if check is not None else {}
         for provider in self.providers:
             if not provider.is_configured() or self._cooldown_left(provider) > 0:
                 continue
             try:
-                return provider.generate(prompt, schema, system=system, tier=tier)
+                return provider.generate(prompt, schema, system=system, tier=tier, **extra)
             except AIRateLimitError as exc:
                 logger.warning("%s rate limited; pausing it and trying the next provider", provider.name)
                 self._cool_down(provider, exc.retry_after)
-            except AIInvalidOutputError:
+            except AIInvalidOutputError as exc:
                 logger.warning("%s returned invalid output after retries", provider.name)
                 invalid_output = True
+                last_invalid = str(exc)
             except AIError as exc:  # unavailable, key rejected, other request failure
                 logger.warning("%s failed: %s", provider.name, exc)
                 self._cool_down(provider)
         if invalid_output:
-            raise AIInvalidOutputError("AI output stayed invalid: needs human review")
+            raise AIInvalidOutputError(f"AI output stayed invalid: needs human review ({last_invalid[:300]})")
         raise AIUnavailableError("no AI provider available (not configured, cooling down, or failing)")
 
     def provider(self, name: str) -> AIProvider | None:

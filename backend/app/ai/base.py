@@ -1,6 +1,7 @@
 import json
 import re
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from pydantic import BaseModel, ValidationError
@@ -89,14 +90,21 @@ class AIProvider(ABC):
         schema: type[BaseModel],
         system: str | None = None,
         tier: str = "strong",
+        check: Callable[[BaseModel], None] | None = None,
     ) -> AIResult:
-        """Ask, validate, and retry when the output is invalid."""
+        """Ask, validate (JSON, schema, then the optional business-rule check), and retry
+        with the rejection reason when the output is invalid. check raises ValueError."""
         last_error: AIInvalidOutputError | None = None
         current = prompt
         for _ in range(self.max_retries):
             raw, model = self.complete(current, schema, system, tier)
             try:
                 data = parse_output(raw, schema)
+                if check is not None:
+                    try:
+                        check(data)
+                    except ValueError as exc:
+                        raise AIInvalidOutputError(f"rule check failed: {exc}") from exc
             except AIInvalidOutputError as exc:
                 last_error = exc
                 current = (

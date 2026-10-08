@@ -99,7 +99,7 @@ def test_save_reject_and_clear(client):
     assert client.get("/api/jobs", params={"decision": "rejected"}).json()["total"] == 1
 
     stats = client.get("/api/jobs/stats").json()
-    assert stats == {"found": 3, "relevant": 2, "filtered_out": 1, "saved": 1, "rejected": 1}
+    assert stats == {"found": 3, "relevant": 2, "filtered_out": 1, "saved": 1, "rejected": 1, "analyzed": 0, "high_fit": 0}
 
     assert client.delete(f"/api/jobs/{second}/decision").json()["user_decision"] is None
     assert client.get("/api/jobs").json()["total"] == 2

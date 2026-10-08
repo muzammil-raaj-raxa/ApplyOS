@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     ai_provider: str = "groq"  # which provider is tried first: groq or ollama
     ai_max_retries: int = 3  # attempts per provider when the AI returns invalid output
     ai_cooldown_seconds: int = 60  # pause on a provider after a rate limit or outage
+    ai_batch_pause_seconds: float = 3.0  # pause between AI calls when scoring many jobs
     groq_api_key: str = ""
     groq_primary_model: str = "openai/gpt-oss-120b"
     groq_fallback_model: str = "qwen/qwen3.8-27b"
