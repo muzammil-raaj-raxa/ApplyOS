@@ -1,0 +1,142 @@
+@layer base {
+  html {
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-bottom: var(--dock-clearance);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: var(--color-pearl);
+    background-color: var(--color-spruce-950);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Atmosphere: a cool pool of light top-left, a warm one bottom-right, spruce between.
+     It lives on a fixed layer so it never scrolls and works on iOS. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    background-image:
+      radial-gradient(70rem 42rem at 6% -12%, rgb(62 170 140 / 0.3), transparent 62%),
+      radial-gradient(56rem 38rem at 104% 108%, rgb(214 134 74 / 0.14), transparent 62%),
+      linear-gradient(180deg, var(--color-spruce-900), var(--color-spruce-950) 70%);
+  }
+
+  /* Fine grain keeps big gradients from banding and gives the dark some texture. */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  ::selection {
+    background: rgb(124 242 184 / 0.28);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-mint);
+    outline-offset: 3px;
+    border-radius: 0.375rem;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  button {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  /* Quiet scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(255 255 255 / 0.16) transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Loading: a slow light passing over the exact shape of what is coming. */
+.shimmer {
+  background: linear-gradient(100deg, rgb(255 255 255 / 0.05) 30%, rgb(255 255 255 / 0.12) 50%, rgb(255 255 255 / 0.05) 70%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+/* Range input used by the minimum score control */
+.range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+.range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-mint) var(--fill, 50%), rgb(255 255 255 / 0.12) var(--fill, 50%));
+}
+.range::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.12);
+}
+.range::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-mint);
+}
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -9px;
+  border-radius: 999px;
+  background: var(--color-pearl);
+  border: 0;
+  box-shadow: 0 0 0 6px rgb(124 242 184 / 0.16), 0 4px 14px rgb(0 0 0 / 0.5);
+  transition: box-shadow var(--duration-quick) var(--ease-out-expo);
+}
+.range:hover::-webkit-slider-thumb {
+  box-shadow: 0 0 0 9px rgb(124 242 184 / 0.2), 0 4px 14px rgb(0 0 0 / 0.5);
+}
+.range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--color-pearl);
+  border: 0;
+  box-shadow: 0 0 0 6px rgb(124 242 184 / 0.16);
+}

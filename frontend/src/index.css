@@ -1,1 +1,4 @@
+@import "@fontsource-variable/bricolage-grotesque/opsz.css";
 @import "tailwindcss";
+@import "./styles/tokens.css";
+@import "./styles/base.css";

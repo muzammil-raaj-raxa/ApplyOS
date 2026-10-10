@@ -200,6 +200,30 @@ Endpoints:
   in your search profile).
 Prompt details: docs/ai-prompts.md.
 
+## Dashboard (Phase 7)
+Open http://localhost:3000 after ./scripts/start.sh. Stack: React, TypeScript, Vite, Tailwind 4,
+TanStack Query and Motion. Fonts are bundled, so it works offline. The design language is
+documented in docs/design-system.md.
+
+Pages:
+- Today: the number of strong fits as the headline, the pipeline drawn as concentric rings, your
+  best matches, and the state of the backend, database and AI providers. Buttons: Find new jobs,
+  Score 5 jobs.
+- Jobs: your ranked list. Search, filter (Active, Saved, Rejected, All; fit; where; best fit or
+  newest; include filtered out), save, reject and restore with undo, score a job from its row.
+  Click a job to open its dossier: the fit ring, how the score is built, skills you cover and
+  miss, evidence from your profile, risks, the full posting, and a link to apply.
+- Sources: edit roles, skip words, companies per job board, employment types, places and what
+  counts as a strong fit. Saved to data/search_profile.json.
+
+Keyboard: Ctrl+K (Cmd+K on a Mac) opens the command palette. On Jobs: J and K move through
+jobs, S saves, X rejects, A scores, / searches, Esc closes the dossier.
+
+Navigation is a dock at the bottom of the screen. Filters live in the address bar, so links
+and the back button work.
+
+Frontend commands (from the frontend folder): npm run dev, npm run build, npm run lint, npm test.
+
 ## Health check
 http://localhost:8000/api/health reports backend, database, groq, ollama and
 playwright. The database flag runs a real query. The groq flag only checks that
@@ -209,12 +233,11 @@ in OLLAMA_MODEL is installed. The playwright flag stays false until Phase 10.
 ## Tests
 From the backend folder, with the virtual environment active:
   python -m pytest -v
-Currently 164 tests: 5 for the database, 16 for the career profile, 36 for the AI layer
-(output parsing, rule checks, Groq errors, Ollama, readiness, router fallback and cooldowns),
-60 for job discovery (normalization, duplicates, filters, the three sources, the discovery run,
-the jobs API) and 47 for scoring (weights and bands, the analysis rules and truthfulness checks,
-batches, and the analysis API). Tests use fake HTTP responses and scripted AI replies, so they
-need no key, no internet and no Ollama.
+Backend: 164 tests (from the backend folder: python -m pytest -v). They use fake HTTP
+responses and scripted AI replies, so they need no key, no internet and no Ollama.
+
+Frontend: 112 tests (from the frontend folder: npm test). They cover formatting and the API
+client, the fit ring, every page and the command palette against a mocked backend.
 
 ## Status
 - Phase 1 (skeleton): done
@@ -223,4 +246,5 @@ need no key, no internet and no Ollama.
 - Phase 4 (AI provider layer): done
 - Phase 5 (job discovery): done
 - Phase 6 (job analysis and scoring): done
-- Phase 7 (V1 dashboard): next
+- Phase 7 (V1 dashboard): done
+- Phase 8 (resume engine, V2): next
